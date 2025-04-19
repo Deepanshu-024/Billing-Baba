@@ -48,6 +48,44 @@ export default function AddSales({ data, setData, change, setChange }) {
   };
 
   const handleInputChange = async (index, column, value) => {
+    // Check if we're updating discount or discountPercentage
+    if (column === "discount" || column === "discountPercentage") {
+      const newRows = [...rows];
+      const pricePerUnit = parseInt(newRows[index].price_per_unit);
+      let willExceedPrice = false;
+      
+      // Check if new value would exceed price
+      if (column === "discount" && parseInt(value) > pricePerUnit) {
+        willExceedPrice = true;
+      } else if (column === "discountPercentage" && parseInt(value) > 100) {
+        willExceedPrice = true;
+      }
+      
+      if (willExceedPrice) {
+        alert("Discount cannot be greater than price per unit.");
+        // Directly set to max allowed value
+        if (column === "discount") {
+          newRows[index].discount = pricePerUnit;
+        } else {
+          newRows[index].discountPercentage = 100;
+        }
+        
+        const qty = parseInt(newRows[index].qty);
+        let tax = 0;
+        if (newRows[index].taxPercentage) {
+          const taxPercentage = parseInt(newRows[index].taxPercentage);
+          tax = (pricePerUnit - pricePerUnit) * (taxPercentage / 100); // Zero after max discount
+        }
+        
+        newRows[index].tax = tax;
+        newRows[index].amount = qty * tax; // Only tax remains since discount equals price
+        
+        setRows(newRows);
+        return; // Exit to prevent double processing
+      }
+    }
+    
+    // Normal update for all other cases
     setRows((prevRows) => {
       const newRows = [...prevRows];
       if (
@@ -67,6 +105,8 @@ export default function AddSales({ data, setData, change, setChange }) {
           let disPer = parseInt(newRows[index]["discountPercentage"]) / 100;
           discount = pricePerUnit * disPer;
         }
+
+
 
         let tax = 0;
         if (newRows[index]["taxPercentage"]) {
@@ -91,7 +131,7 @@ export default function AddSales({ data, setData, change, setChange }) {
   };
 
   function generateUniqueInvoiceNumber(data) {
-    const existing = new Set(data.map((item) => item.invoice_number));
+    const existing = new Set((data.Transactions || []).map((item) => item.invoice_number));
     let invoice;
     do {
       invoice = Math.floor(1000000000 + Math.random() * 9000000000).toString();
@@ -99,7 +139,7 @@ export default function AddSales({ data, setData, change, setChange }) {
     return invoice;
   }
   const [invoice_number, setInvoice_number] = useState(
-    generateUniqueInvoiceNumber(data.Transactions)
+    generateUniqueInvoiceNumber(data)
   );
 
   const [Party, setParty] = useState(); // Initial index count
@@ -1222,7 +1262,7 @@ export default function AddSales({ data, setData, change, setChange }) {
                 )}
                   {data.settings?.MfgDate && ( 
                   <td className="px-1 py-1  text-end border border-gray-300 border-x-0"></td>
-                )}
+                    )}
                   {data.settings?.size && (
                   <td className="px-1 py-1  text-end border border-gray-300 border-x-0"></td>
                 )}
@@ -1312,8 +1352,7 @@ export default function AddSales({ data, setData, change, setChange }) {
                           className="w-4 h-4"
                         >
                           <path
-                            d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H160 85.9l11.1-11.6c9.4-10.5 9.4-27.7 0-39.2L
-                    135.2 17.7zM32 128H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32S14.3 32 32 32z"
+                            d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0-7.2-14.3C307.4 6.8 296.3 0 284.2 0L163.8 0c-12.1 0-23.2 6.8-28.6 17.7zM416 128L32 128 53.2 467c1.6 25.3 22.6 45 47.9 45l245.8 0c25.3 0 46.3-19.7 47.9-45L416 128z"
                           />
                         </svg>
                       </button>
